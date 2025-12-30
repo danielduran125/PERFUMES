@@ -500,7 +500,7 @@
     function enviarWhatsApp() {
         const n = document.getElementById('nombreForm').value, t = document.getElementById('telForm').value, d = document.getElementById('direccionForm').value;
         if(!n || !t || !d) return alert("Completa los datos");
-        let msg = `*PEDIDO LUXURY SCENTS*\n\n*Cliente:* ${n}\n*WhatsApp:* ${t}\n*Dirección:* ${d}\n\n*PRODUCTOS:*\n`;
+        let msg = `*PEDIDO DECANT&PARFUM*\n\n*Cliente:* ${n}\n*WhatsApp:* ${t}\n*Dirección:* ${d}\n\n*PRODUCTOS:*\n`;
         carrito.forEach(i => msg += `• ${i.NOMBRE} (x${i.cantidad})\n`);
         msg += `\n*TOTAL: ${document.getElementById('cart-total').innerText}*`;
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -589,5 +589,6 @@ setInterval(() => moveHero(1), 5000);
 </body>
 
 </html>
+
 
 
