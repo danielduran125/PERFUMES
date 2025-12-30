@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Luxury Scents | Perfumería Premium</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --negro: #000000;
+            --azul-ml: #3483fa;
+            --gris-claro: #f5f5f5;
+            --gris-borde: #eeeeee;
+            --oro: #ffcc00;
+            --verde: #28a745;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Proxima Nova', sans-serif; background-color: var(--gris-claro); margin: 0; color: #333; }
+
+        /* HEADER */
+        header { 
+            background: #000; color: #fff; padding: 10px 20px; 
+            display: flex; flex-direction: column; gap: 10px;
+            position: sticky; top: 0; z-index: 1000;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .search-container { width: 100%; position: relative; max-width: 600px; margin: 0 auto; }
+        .search-container input { width: 100%; padding: 10px 40px 10px 15px; border-radius: 20px; border: none; outline: none; font-size: 14px; }
+        .cart-container { position: relative; cursor: pointer; font-size: 22px; }
+        .cart-badge { position: absolute; top: -8px; right: -8px; background: var(--azul-ml); color: white; font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        /* CATALOGO - IMAGEN MAS GRANDE */
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 10px; }
+        #catalogo { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: white; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; border: 1px solid var(--gris-borde); height: 100%; }
+        
+        .img-wrapper { 
+            width: 100%; 
+            height: 200px; /* Imagen más grande */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 12px; 
+            overflow: hidden;
+        }
+        .card img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        .badge-decant { 
+            background-color: var(--negro); color: var(--oro); 
+            font-weight: 800; font-size: 9px; padding: 4px 8px; 
+            border-radius: 4px; border: 1px solid var(--oro); 
+            display: inline-block; width: fit-content; margin-bottom: 8px;
+        }
+        .precio { font-size: 20px; font-weight: 600; margin: 5px 0; }
+        .btn-add { background: var(--negro); color: white; border: none; padding: 12px; cursor: pointer; font-weight: 600; border-radius: 6px; width: 100%; text-transform: uppercase; font-size: 11px; margin-top: auto; }
+
+        /* MODALES */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        
+        .modal-content-base { 
+            background: white; width: 95%; max-width: 450px; height: 85vh; border-radius: 12px; position: relative; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .close-btn { position: absolute; right: 15px; top: 12px; font-size: 26px; cursor: pointer; z-index: 101; color: #333; }
+
+        /* CARRITO REDISEÑADO */
+        #carrito-lista { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 160px; }
+        
+        .item-carrito { 
+            display: flex; 
+            align-items: flex-start; 
+            gap: 12px; 
+            padding: 15px 0; 
+            border-bottom: 1px solid #f5f5f5; 
+        }
+        .img-mini { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
+        .item-info { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        .item-nombre { font-weight: 600; font-size: 13px; padding-right: 10px; }
+        .item-controles { display: flex; align-items: center; gap: 12px; }
+        .item-precio-lado { font-weight: bold; color: var(--azul-ml); font-size: 15px; white-space: nowrap; margin-left: auto; }
+
+        .btn-qty { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #ddd; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .modal-footer-fix { position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 20px; border-top: 1px solid #eee; z-index: 100; }
+        .btn-vaciar { background: none; border: none; color: #ff4444; text-decoration: underline; font-size: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
+
+        /* MODAL PRODUCTO (SLIDER) */
+        .modal-prod-content { 
+            background: white; width: 95%; max-width: 900px; height: 80vh; border-radius: 12px; display: flex; flex-direction: row; overflow: hidden; position: relative;
+        }
+        .slider-area { width: 60%; position: relative; display: flex; flex-direction: column; border-right: 1px solid #eee; }
+        .info-area { width: 40%; padding: 30px; display: flex; flex-direction: column; overflow-y: auto; }
+
+        @media (max-width: 768px) {
+            .modal-prod-content { flex-direction: column; height: 90vh; }
+            .slider-area { width: 100%; height: 45%; border-right: none; }
+            .info-area { width: 100%; height: 55%; padding: 20px; }
+            #catalogo { grid-template-columns: repeat(2, 1fr); }
+            .img-wrapper { height: 160px; }
+        }
+
+        #toast { visibility: hidden; min-width: 250px; background-color: var(--verde); color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+      
+      
+   /* ESTILOS DEL SLIDER HERO */
+.hero-slider {
+    position: relative;
+    width: 100%;
+    height: 450px; /* Altura en PC */
+    overflow: hidden;
+    background: #000;
+}
+
+.slider-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide {
+    min-width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+}
+
+.slide-content h2 {
+    font-size: 42px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-weight: 700;
+}
+
+.slide-content p {
+    font-size: 18px;
+    margin-top: 10px;
+    letter-spacing: 1px;
+}
+
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 15px 20px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: 0.3s;
+    z-index: 10;
+}
+
+.slider-btn:hover { background: rgba(255, 255, 255, 0.4); }
+.prev { left: 0; border-radius: 0 5px 5px 0; }
+.next { right: 0; border-radius: 5px 0 0 5px; }
+
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.dot.active { background: white; width: 25px; border-radius: 5px; }
+
+/* Ajuste móvil */
+@media (max-width: 768px) {
+    .hero-slider { height: 300px; }
+    .slide-content h2 { font-size: 24px; }
+    .slide-content p { font-size: 14px; }
+}   
+      
+      /* ESTILOS DEL FOOTER */
+.main-footer {
+    background-color: #000;
+    color: #fff;
+    padding: 60px 20px 20px 20px;
+    margin-top: 50px;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+}
+
+.footer-logo {
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    color: var(--oro);
+}
+
+.footer-section h3 {
+    font-size: 16px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.footer-section p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #bbb;
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin-bottom: 10px;
+}
+
+.footer-section ul li a {
+    color: #bbb;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+}
+
+.footer-section ul li a:hover {
+    color: var(--azul-ml);
+}
+
+.footer-socials {
+    display: block ruby;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.footer-socials a {
+    color: white;
+    font-size: 20px;
+    transition: transform 0.3s, color 0.3s;
+}
+
+.footer-socials a:hover {
+    color: var(--oro);
+    transform: translateY(-3px);
+}
+
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid #222;
+    margin-top: 40px;
+    padding-top: 20px;
+}
+
+.footer-bottom p {
+    font-size: 12px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .main-footer {
+        padding: 40px 20px 20px 20px;
+        text-align: center;
+    }
+    .footer-socials {
+        justify-content: center;
+    }
+    .footer-section h3 {
+        margin-top: 20px;
+    }
+}
+      
+      
+      
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <h1 style="margin:0; font-size: 16px; letter-spacing: 1px;">LUXURY SCENTS</h1>
+        <div class="cart-container" onclick="openCart()">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <div class="cart-badge" id="cart-count">0</div>
+        </div>
+    </div>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Buscar perfume..." onkeyup="filtrarProductos()">
+    </div>
+</header>
+  
+  <div class="hero-slider">
+    <div class="slider-track" id="mainSliderTrack">
+        <div class="slide" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1400&auto=format&fit=crop');">
+            <div class="slide-content">
+                <h2>Fragancias Exclusivas</h2>
+                <p>Descubre el arte de la alta perfumería</p>
+            </div>
+        </div>
+        <div class="slide" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?q=80&w=1400&auto=format&fit=crop');">
+            <div class="slide-content">
+                <h2>Colección Decants</h2>
+                <p>Tus aromas favoritos en presentaciones de lujo</p>
+            </div>
+        </div>
+        <div class="slide" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=1400&auto=format&fit=crop');">
+            <div class="slide-content">
+                <h2>Envios a todo el País</h2>
+                <p>Calidad premium directo a tu puerta</p>
+            </div>
+        </div>
+    </div>
+    
+    <button class="slider-btn prev" onclick="moveHero(-1)">❮</button>
+    <button class="slider-btn next" onclick="moveHero(1)">❯</button>
+    
+    <div class="slider-dots" id="heroDots"></div>
+</div>
+
+<div class="container">
+    <div id="catalogo"></div>
+</div>
+
+<div id="modalProd" class="modal">
+    <div class="modal-prod-content">
+        <span class="close-btn" onclick="closeModal('modalProd')">&times;</span>
+        <div class="slider-area">
+            <div style="flex-grow:1; overflow:hidden; position:relative; display:flex; align-items:center;">
+                <button onclick="moveSlide(-1)" style="position:absolute; left:10px; z-index:10; background:rgba(0,0,0,0.1); border:none; border-radius:50%; width:35px; height:35px; color:white;">❮</button>
+                <div id="sliderTrack" style="display:flex; height:100%; transition: transform 0.4s; width:100%;"></div>
+                <button onclick="moveSlide(1)" style="position:absolute; right:10px; z-index:10; background:rgba(0,0,0,0.1); border:none; border-radius:50%; width:35px; height:35px; color:white;">❯</button>
+            </div>
+            <div id="thumbContainer" style="display:flex; justify-content:center; gap:8px; padding:10px;"></div>
+        </div>
+        <div id="modalInfo" class="info-area"></div>
+    </div>
+</div>
+
+<div id="modalCarrito" class="modal">
+    <div class="modal-content-base">
+        <span class="close-btn" onclick="closeModal('modalCarrito')">&times;</span>
+        <div style="padding:15px; border-bottom:1px solid #eee; text-align:center;"><h2>Mi Carrito</h2></div>
+        
+        <div id="carrito-lista"></div>
+
+        <div class="modal-footer-fix" id="cart-footer" style="display:none;">
+            <div style="display:flex; justify-content: space-between; font-weight: bold; font-size: 20px; margin-bottom: 12px;">
+                <span>Total:</span><span id="cart-total">$0</span>
+            </div>
+            <button class="btn-add" style="background: var(--azul-ml); height: 50px; font-size: 14px;" onclick="irAFormulario()">REALIZAR PEDIDO</button>
+            <button class="btn-vaciar" onclick="vaciarCarrito()">VACIAR TODO EL CARRITO</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalForm" class="modal">
+    <div class="modal-content-base" style="height: auto; padding: 25px;">
+        <span class="close-btn" onclick="closeModal('modalForm')">&times;</span>
+        <h2 style="text-align:center; margin-top:0;">Finalizar Compra</h2>
+        <div style="margin-bottom:15px">
+            <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px">Nombre y Apellido</label>
+            <input type="text" id="nombreForm" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px">
+        </div>
+        <div style="margin-bottom:15px">
+            <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px">WhatsApp</label>
+            <input type="tel" id="telForm" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px" placeholder="2622XXXXXX">
+        </div>
+        <div style="margin-bottom:15px">
+            <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px">Dirección</label>
+            <input type="text" id="direccionForm" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px">
+        </div>
+        <button class="btn-add" style="background: #25D366; height: 50px;" onclick="enviarWhatsApp()">CONFIRMAR PEDIDO <i class="fa-brands fa-whatsapp"></i></button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    const JSON_URL = 'https://api.jsonbin.io/v3/b/687eada8f7e7a370d1eba3b5';
+    const WHATSAPP_NUMBER = '5492622688830'; 
+    let perfumes = [], productosFiltrados = [], carrito = JSON.parse(localStorage.getItem('luxury_cart')) || [];
+    let currentImgIdx = 0, totalImgs = 0;
+
+    async function cargarDatos() {
+        try {
+            const res = await fetch(JSON_URL, { headers: { 'X-Bin-Meta': false } });
+            const data = await res.json();
+            perfumes = data.record || data;
+            productosFiltrados = [...perfumes];
+            renderCatalogo();
+            actualizarUI();
+        } catch (e) { console.error(e); }
+    }
+
+    function renderCatalogo() {
+        const cat = document.getElementById('catalogo');
+        cat.innerHTML = productosFiltrados.map((p, i) => {
+            const originalIndex = perfumes.findIndex(orig => orig.NOMBRE === p.NOMBRE);
+            const decantVal = p.DECANT || (JSON.stringify(p).toUpperCase().includes("DECANT") ? "DISPONIBLE DECANT 5ML" : null);
+            return `
+                <div class="card">
+                    <div onclick="openModalProd(${originalIndex})" style="cursor:pointer; flex:1;">
+                        <div class="img-wrapper"><img src="${p['IMAGEN 1']}"></div>
+                        ${decantVal ? `<div class="badge-decant">${decantVal}</div>` : '<div style="height:21px"></div>'}
+                        <div style="color:#999; font-size:10px; font-weight:600;">${p.MARCA}</div>
+                        <div style="font-weight:600; font-size:13px; height:32px; overflow:hidden; margin-bottom:5px;">${p.NOMBRE}</div>
+                        <div class="precio">$${Number(p.PRECIO).toLocaleString()}</div>
+                    </div>
+                    <button class="btn-add" onclick="addToCart(${originalIndex})">Añadir</button>
+                </div>`;
+        }).join('');
+    }
+
+    function openModalProd(idx) {
+        const p = perfumes[idx];
+        let imgs = [p['IMAGEN 1']];
+        if(p['IMAGEN 2'] && p['IMAGEN 2'].trim() !== "") imgs.push(p['IMAGEN 2']);
+        totalImgs = imgs.length; currentImgIdx = 0;
+
+        document.getElementById('sliderTrack').innerHTML = imgs.map(src => `
+            <div style="min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background:#fff;">
+                <img src="${src}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+            </div>`).join('');
+
+        document.getElementById('thumbContainer').innerHTML = imgs.length > 1 ? imgs.map((src, i) => `<img src="${src}" style="width:40px;height:40px;object-fit:contain;border:1px solid #eee;cursor:pointer" onclick="goToSlide(${i})">`).join('') : '';
+        
+        document.getElementById('modalInfo').innerHTML = `
+            <span style="color:#999; font-size:12px; font-weight:600;">${p.MARCA}</span>
+            <h2 style="margin:5px 0 10px 0; font-size:22px;">${p.NOMBRE}</h2>
+            <div class="precio" style="font-size:28px; color:var(--azul-ml); margin-bottom:20px;">$${Number(p.PRECIO).toLocaleString()}</div>
+            <p style="font-size:14px; line-height:1.5; color:#555; flex:1;">${p.DESCRIPCION}</p>
+            <button class="btn-add" style="height:50px; font-size:14px;" onclick="addToCart(${idx})">AÑADIR AL CARRITO</button>`;
+        
+        updateSlider();
+        document.getElementById('modalProd').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function updateSlider() { document.getElementById('sliderTrack').style.transform = `translateX(-${currentImgIdx * 100}%)`; }
+    function moveSlide(step) { currentImgIdx = (currentImgIdx + step + totalImgs) % totalImgs; updateSlider(); }
+    function goToSlide(i) { currentImgIdx = i; updateSlider(); }
+
+    function openCart() {
+        const lista = document.getElementById('carrito-lista');
+        const footer = document.getElementById('cart-footer');
+        let total = 0;
+        if (carrito.length === 0) {
+            lista.innerHTML = '<div style="text-align:center; padding:50px 0; color:#999;">Vacío</div>';
+            footer.style.display = 'none';
+        } else {
+            footer.style.display = 'block';
+            lista.innerHTML = carrito.map((item, i) => {
+                total += item.PRECIO * item.cantidad;
+                return `
+                <div class="item-carrito">
+                    <img src="${item['IMAGEN 1']}" class="img-mini">
+                    <div class="item-info">
+                        <div class="item-nombre">${item.NOMBRE}</div>
+                        <div class="item-controles">
+                            <button class="btn-qty" onclick="changeQty(${i},-1)">-</button>
+                            <span style="font-weight:bold;">${item.cantidad}</span>
+                            <button class="btn-qty" onclick="changeQty(${i},1)">+</button>
+                        </div>
+                    </div>
+                    <div class="item-precio-lado">$${Number(item.PRECIO).toLocaleString()}</div>
+                </div>`;
+            }).join('');
+        }
+        document.getElementById('cart-total').innerText = `$${total.toLocaleString()}`;
+        document.getElementById('modalCarrito').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function changeQty(i, d) { 
+        carrito[i].cantidad += d; if(carrito[i].cantidad <= 0) carrito.splice(i, 1); 
+        guardarCarrito(); actualizarUI(); openCart(); 
+    }
+    function vaciarCarrito() { if(confirm("¿Vaciar?")) { carrito = []; guardarCarrito(); actualizarUI(); openCart(); } }
+    function irAFormulario() { closeModal('modalCarrito'); document.getElementById('modalForm').style.display = 'flex'; }
+    function enviarWhatsApp() {
+        const n = document.getElementById('nombreForm').value, t = document.getElementById('telForm').value, d = document.getElementById('direccionForm').value;
+        if(!n || !t || !d) return alert("Completa los datos");
+        let msg = `*PEDIDO LUXURY SCENTS*\n\n*Cliente:* ${n}\n*WhatsApp:* ${t}\n*Dirección:* ${d}\n\n*PRODUCTOS:*\n`;
+        carrito.forEach(i => msg += `• ${i.NOMBRE} (x${i.cantidad})\n`);
+        msg += `\n*TOTAL: ${document.getElementById('cart-total').innerText}*`;
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+    function filtrarProductos() {
+        const q = document.getElementById('searchInput').value.toUpperCase();
+        productosFiltrados = perfumes.filter(p => JSON.stringify(p).toUpperCase().includes(q));
+        renderCatalogo();
+    }
+    function addToCart(idx) {
+        const p = perfumes[idx];
+        const item = carrito.find(i => i.NOMBRE === p.NOMBRE);
+        item ? item.cantidad++ : carrito.push({...p, cantidad: 1});
+        guardarCarrito(); actualizarUI(); showToast(`${p.NOMBRE} añadido`);
+    }
+    function actualizarUI() { document.getElementById('cart-count').innerText = carrito.reduce((a, b) => a + b.cantidad, 0); }
+    function guardarCarrito() { localStorage.setItem('luxury_cart', JSON.stringify(carrito)); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
+    function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.className = "show"; setTimeout(() => t.className = "", 3000); }
+    window.onclick = (e) => { if(e.target.classList.contains('modal')) closeModal(e.target.id); }
+    cargarDatos();
+  
+  // LÓGICA DEL CARRUSEL HERO
+let heroIdx = 0;
+const heroTrack = document.getElementById('mainSliderTrack');
+const heroSlides = document.querySelectorAll('.slide');
+const heroDotsContainer = document.getElementById('heroDots');
+
+// Crear puntos dinámicamente
+heroSlides.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.classList.add('dot');
+    if(i === 0) dot.classList.add('active');
+    dot.onclick = () => { heroIdx = i; updateHero(); };
+    heroDotsContainer.appendChild(dot);
+});
+
+function updateHero() {
+    heroTrack.style.transform = `translateX(-${heroIdx * 100}%)`;
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === heroIdx));
+}
+
+function moveHero(step) {
+    heroIdx = (heroIdx + step + heroSlides.length) % heroSlides.length;
+    updateHero();
+}
+
+// Auto-reproducción cada 5 segundos
+setInterval(() => moveHero(1), 5000);
+</script>
+  
+  <footer class="main-footer">
+    <div class="footer-container">
+        <div class="footer-section">
+            <h2 class="footer-logo">LUXURY SCENTS</h2>
+            <p>La mejor selección de perfumería premium y decants exclusivos en un solo lugar.</p>
+            <div class="footer-socials">
+                <a href="https://www.instagram.com/decantyparfum.lyd/?igsh=djRjc2l3NnNidmNn"> <i class="fa-brands fa-instagram"></i></a> <h5>SEGUINOS EN INSTAGRAM</h5>
+                <!-- <a href="#"><i class="fa-brands fa-facebook"></i></a>
+                <a href="#"><i class="fa-brands fa-tiktok"></i></a> -->
+            </div>
+        </div>
+
+        <div class="footer-section">
+            <h3>Navegación</h3>
+            <ul>
+                <li><a href="#" onclick="window.scrollTo(0,0)">Inicio</a></li>
+                <li><a href="#catalogo">Catálogo</a></li>
+                <li><a href="javascript:void(0)" onclick="openCart()">Mi Carrito</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-section">
+            <h3>Contacto</h3>
+            <p><i class="fa-solid fa-location-dot"></i> Mendoza, Argentina</p>
+            <p><i class="fa-solid fa-phone"></i> +54 9 2622 688830</p>
+            <p><i class="fa-solid fa-envelope"></i> info@luxuryscents.com</p>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <p>&copy; 2025 Luxury Scents - Todos los derechos reservados.</p>
+    </div>
+</footer>
+</body>
+</html>
