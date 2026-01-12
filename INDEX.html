@@ -444,7 +444,7 @@
     const cat = document.getElementById('catalogo');
     cat.innerHTML = productosFiltrados.map((p, i) => {
         const originalIndex = perfumes.findIndex(orig => orig.NOMBRE === p.NOMBRE);
-        const decantVal = p.DECANT || (JSON.stringify(p).toUpperCase().includes("DECANT") ? "DECANT DISPONIBLE" : null);
+        const decantVal = p.DECANT || (JSON.stringify(p).toUpperCase().includes("DECANT") ? "DISPONIBLE DECANT 5ML" : null);
         
         // --- LÓGICA DE STOCK ---
         const hayStock = p.STOCK > 0; 
@@ -647,6 +647,7 @@ setInterval(() => moveHero(1), 5000);
 </body>
 
 </html>
+
 
 
 
