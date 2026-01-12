@@ -190,6 +190,34 @@
     .slide-content h2 { font-size: 24px; }
     .slide-content p { font-size: 14px; }
 }   
+
+        /* ETIQUETA SIN STOCK */
+.badge-stock {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(255, 0, 0, 0.85); /* Rojo semi-transparente */
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    z-index: 5;
+    text-transform: uppercase;
+}
+
+/* Oscurecer un poco la imagen cuando no hay stock */
+.card.no-stock .img-wrapper img {
+    opacity: 0.5;
+    filter: grayscale(1);
+}
+
+/* Deshabilitar botón de añadir */
+.btn-add.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    pointer-events: none;
+}
       
       /* ESTILOS DEL FOOTER */
 .main-footer {
@@ -413,7 +441,36 @@
     }
 
     function renderCatalogo() {
-        const cat = document.getElementById('catalogo');
+    const cat = document.getElementById('catalogo');
+    cat.innerHTML = productosFiltrados.map((p, i) => {
+        const originalIndex = perfumes.findIndex(orig => orig.NOMBRE === p.NOMBRE);
+        const decantVal = p.DECANT || (JSON.stringify(p).toUpperCase().includes("DECANT") ? "DECANT DISPONIBLE" : null);
+        
+        // --- LÓGICA DE STOCK ---
+        const hayStock = p.STOCK > 0; 
+        const badgeSinStock = !hayStock ? `<div class="badge-stock">SIN STOCK</div>` : '';
+        const claseNoStock = !hayStock ? 'no-stock' : '';
+        const btnDeshabilitado = !hayStock ? 'disabled' : '';
+        const textoBoton = !hayStock ? 'Agotado' : 'Añadir';
+
+        return `
+            <div class="card ${claseNoStock}" style="position:relative;">
+                ${badgeSinStock}
+                <div onclick="${hayStock ? `openModalProd(${originalIndex})` : ''}" style="cursor:${hayStock ? 'pointer' : 'default'}; flex:1;">
+                    <div class="img-wrapper"><img src="${p['IMAGEN 1']}"></div>
+                    ${decantVal ? `<div class="badge-decant">${decantVal}</div>` : '<div style="height:21px"></div>'}
+                    <div style="color:#999; font-size:10px; font-weight:600;">${p.MARCA}</div>
+                    <div style="font-weight:600; font-size:13px; height:32px; overflow:hidden; margin-bottom:5px;">${p.NOMBRE}</div>
+                    <div class="precio">$${Number(p.PRECIO).toLocaleString()}</div>
+                </div>
+                <button class="btn-add ${btnDeshabilitado}" onclick="addToCart(${originalIndex})">${textoBoton}</button>
+            </div>`;
+    }).join('');
+}
+
+ /*
+      function renderCatalogo() {
+    const cat = document.getElementById('catalogo');
         cat.innerHTML = productosFiltrados.map((p, i) => {
             const originalIndex = perfumes.findIndex(orig => orig.NOMBRE === p.NOMBRE);
             const decantVal = p.DECANT || (JSON.stringify(p).toUpperCase().includes("DECANT") ? "DISPONIBLE DECANT 5ML" : null);
@@ -430,7 +487,8 @@
                 </div>`;
         }).join('');
     }
-
+      
+*/
     function openModalProd(idx) {
         const p = perfumes[idx];
         let imgs = [p['IMAGEN 1']];
@@ -589,6 +647,7 @@ setInterval(() => moveHero(1), 5000);
 </body>
 
 </html>
+
 
 
 
