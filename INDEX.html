@@ -448,7 +448,7 @@
         
         // --- LÓGICA DE STOCK ---
         const hayStock = p.STOCK > 0; 
-        const badgeSinStock = !hayStock ? `<div class="badge-stock">SIN STOCK</div>` : '';
+        const badgeSinStock = !hayStock ? `<div class="badge-stock">AGOTADO</div>` : '';
         const claseNoStock = !hayStock ? 'no-stock' : '';
         const btnDeshabilitado = !hayStock ? 'disabled' : '';
         const textoBoton = !hayStock ? 'Agotado' : 'Añadir';
@@ -647,6 +647,7 @@ setInterval(() => moveHero(1), 5000);
 </body>
 
 </html>
+
 
 
 
