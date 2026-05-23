@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
 	<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>DECANTY | Alta Perfumería & Outlet Original</title>
     <meta name="description" content="Catálogo exclusivo de perfumes importados originales, saldos de exportación y decants de lujo.">
@@ -411,6 +413,22 @@
         margin-top: 20px;
     }
 }
+
+#modalLightbox {
+    touch-action: auto; /* Permite gestos nativos como zoom */
+    overflow: auto;     /* Permite scroll si la imagen está muy grande */
+}
+
+#lightboxTrack {
+    touch-action: pan-x; /* Solo permite scroll horizontal para el swipe */
+    /* Quitamos el transform aquí si queremos que el navegador gestione el zoom de la imagen */
+}
+
+#lightboxTrack img {
+    /* Esto es vital para que la imagen pueda escalarse nativamente */
+    transition: transform 0.2s ease;
+    cursor: grab;
+}
       
       
       
@@ -729,10 +747,12 @@ async function cargarDatos() {
         if(p['IMAGEN 2'] && p['IMAGEN 2'].trim() !== "") imgs.push(p['IMAGEN 2']);
         totalImgs = imgs.length; currentImgIdx = 0;
 
-        document.getElementById('sliderTrack').innerHTML = imgs.map(src => `
-            <div style="min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background:#fff;">
-                <img src="${src}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
-            </div>`).join('');
+    // Dentro de la función openModalProd, busca la parte del slider y modifícala así:
+document.getElementById('sliderTrack').innerHTML = imgs.map((src, i) => `
+    <div style="min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background:#fff;">
+        <img src="${src}" style="max-width: 90%; max-height: 90%; object-fit: contain; cursor: zoom-in;" 
+             onclick="abrirLightbox('${imgs.join(',')}', ${i})">
+    </div>`).join('');
 
         document.getElementById('thumbContainer').innerHTML = imgs.length > 1 ? imgs.map((src, i) => `<img src="${src}" style="width:40px;height:40px;object-fit:contain;border:1px solid #eee;cursor:pointer" onclick="goToSlide(${i})">`).join('') : '';
         
@@ -843,6 +863,53 @@ function moveHero(step) {
 
 // Auto-reproducción cada 5 segundos
 setInterval(() => moveHero(1), 5000);
+
+function abrirLightbox(imagenesString, index) {
+    const imagenes = imagenesString.split(',');
+    const track = document.getElementById('lightboxTrack');
+    const modal = document.getElementById('modalLightbox');
+
+    // Generar imágenes
+    track.innerHTML = imagenes.map(src => `
+        <div style="min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: auto;">
+            <img src="${src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Bloquea scroll de fondo
+    
+    let currentIdx = index;
+    track.style.transform = `translateX(-${currentIdx * 100}%)`;
+
+    // Swipe mejorado
+    let touchStartX = 0;
+    track.ontouchstart = (e) => {
+        if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
+    };
+    
+    track.ontouchend = (e) => {
+        // Solo desliza si es un solo dedo y no hubo zoom
+        if (e.changedTouches.length === 1) {
+            let diff = touchStartX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 80) { // Mayor sensibilidad
+                if (diff > 0 && currentIdx < imagenes.length - 1) currentIdx++;
+                else if (diff < 0 && currentIdx > 0) currentIdx--;
+                track.style.transform = `translateX(-${currentIdx * 100}%)`;
+            }
+        }
+    };
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+    document.body.style.overflow = 'auto'; // Devuelve el scroll a la web
+    
+    // Si cerramos el Lightbox, limpiamos el contenido
+    if(id === 'modalLightbox') {
+        document.getElementById('lightboxTrack').innerHTML = '';
+    }
+}
+
 </script>
   
   <footer class="main-footer">
@@ -878,13 +945,17 @@ setInterval(() => moveHero(1), 5000);
         <p>&copy; 2026 DECANTYPARFUM - Todos los derechos reservados.</p>
     </div>
 </footer>
+
+<!-- Visor de imagen grande (Lightbox) -->
+<div id="modalLightbox" class="modal">
+    <span class="close-btn" onclick="closeModal('modalLightbox')" style="color: white; font-size: 40px; top: 20px; right: 30px;">&times;</span>
+    <div id="lightboxTrack" style="display: flex; width: 100%; height: 100%; transition: transform 0.3s ease;">
+        <!-- Las imágenes se cargarán aquí dinámicamente -->
+    </div>
+</div>
+
+
 </body>
 
 </html>
-
-
-
-
-
-
 
