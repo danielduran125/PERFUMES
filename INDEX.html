@@ -415,19 +415,58 @@
 }
 
 #modalLightbox {
-    touch-action: auto; /* Permite gestos nativos como zoom */
-    overflow: auto;     /* Permite scroll si la imagen está muy grande */
+    touch-action: none; /* El JS maneja todos los gestos */
+    overflow: hidden;
 }
 
 #lightboxTrack {
-    touch-action: pan-x; /* Solo permite scroll horizontal para el swipe */
-    /* Quitamos el transform aquí si queremos que el navegador gestione el zoom de la imagen */
+    touch-action: none;
+    will-change: transform;
 }
 
 #lightboxTrack img {
-    /* Esto es vital para que la imagen pueda escalarse nativamente */
-    transition: transform 0.2s ease;
-    cursor: grab;
+    touch-action: none;
+    -webkit-user-drag: none;
+    user-select: none;
+    cursor: zoom-in;
+    will-change: transform;
+}
+
+/* Botones de zoom flotantes en el lightbox */
+.lb-zoom-btns {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.lb-zoom-btns button {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+.lb-zoom-btns button:hover { background: rgba(255,255,255,0.3); }
+.lb-zoom-level {
+    color: white;
+    font-size: 13px;
+    background: rgba(0,0,0,0.4);
+    padding: 4px 10px;
+    border-radius: 20px;
+    min-width: 52px;
+    text-align: center;
 }
       
       
@@ -869,45 +908,214 @@ function abrirLightbox(imagenesString, index) {
     const track = document.getElementById('lightboxTrack');
     const modal = document.getElementById('modalLightbox');
 
-    // Generar imágenes
-    track.innerHTML = imagenes.map(src => `
-        <div style="min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: auto;">
-            <img src="${src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+    // Generar imágenes con wrapper individual por slide
+    track.innerHTML = imagenes.map((src, i) => `
+        <div class="lb-slide" data-idx="${i}" style="min-width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <img src="${src.trim()}" class="lb-img" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform 0.1s ease;user-select:none;-webkit-user-drag:none;">
         </div>
     `).join('');
 
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Bloquea scroll de fondo
-    
+    document.body.style.overflow = 'hidden';
+
     let currentIdx = index;
     track.style.transform = `translateX(-${currentIdx * 100}%)`;
 
-    // Swipe mejorado
-    let touchStartX = 0;
-    track.ontouchstart = (e) => {
-        if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
+    // ── Variables de zoom ──────────────────────────────────────────
+    let scale = 1;
+    let originX = 0, originY = 0;   // punto de anclaje del zoom
+    let panX = 0, panY = 0;          // desplazamiento acumulado
+
+    // Obtener imagen activa
+    function activeImg() {
+        return track.querySelectorAll('.lb-img')[currentIdx];
+    }
+
+    function applyTransform(img) {
+        img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    function resetZoom() {
+        scale = 1; panX = 0; panY = 0;
+        const img = activeImg();
+        if (img) img.style.transform = 'translate(0,0) scale(1)';
+    }
+
+    // ── Zoom con rueda del mouse ───────────────────────────────────
+    track.onwheel = (e) => {
+        e.preventDefault();
+        const img = activeImg();
+        if (!img) return;
+        const rect = img.getBoundingClientRect();
+        const delta = e.deltaY < 0 ? 1.15 : 0.87;
+        const newScale = Math.min(Math.max(scale * delta, 1), 8);
+        // Ajustar pan para que el zoom sea relativo al cursor
+        panX = (panX - (e.clientX - rect.left - rect.width / 2)) * (newScale / scale) + (e.clientX - rect.left - rect.width / 2);
+        panY = (panY - (e.clientY - rect.top  - rect.height / 2)) * (newScale / scale) + (e.clientY - rect.top  - rect.height / 2);
+        scale = newScale;
+        if (scale <= 1) { scale = 1; panX = 0; panY = 0; }
+        applyTransform(img);
     };
-    
+
+    // ── Pinch zoom + pan táctil ───────────────────────────────────
+    let lastDist = 0;
+    let lastMidX = 0, lastMidY = 0;
+    let touchStartX = 0, touchStartY = 0;
+    let panStartX = 0, panStartY = 0;
+    let swipeBlocked = false;
+
+    track.ontouchstart = (e) => {
+        if (e.touches.length === 2) {
+            swipeBlocked = true;
+            const t1 = e.touches[0], t2 = e.touches[1];
+            lastDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            lastMidX = (t1.clientX + t2.clientX) / 2;
+            lastMidY = (t1.clientY + t2.clientY) / 2;
+            panStartX = panX; panStartY = panY;
+        } else if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            panStartX = panX; panStartY = panY;
+            swipeBlocked = false;
+        }
+    };
+
+    track.ontouchmove = (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            swipeBlocked = true;
+            const img = activeImg();
+            if (!img) return;
+            const t1 = e.touches[0], t2 = e.touches[1];
+            const dist  = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            const midX  = (t1.clientX + t2.clientX) / 2;
+            const midY  = (t1.clientY + t2.clientY) / 2;
+            const rect  = img.getBoundingClientRect();
+
+            if (lastDist > 0) {
+                const ratio = dist / lastDist;
+                const newScale = Math.min(Math.max(scale * ratio, 1), 8);
+                // Pan relativo al punto medio del pinch
+                panX = (panX - (lastMidX - rect.left - rect.width / 2)) * (newScale / scale) + (midX - rect.left - rect.width / 2);
+                panY = (panY - (lastMidY - rect.top  - rect.height / 2)) * (newScale / scale) + (midY - rect.top  - rect.height / 2);
+                scale = newScale;
+                if (scale <= 1) { scale = 1; panX = 0; panY = 0; }
+                applyTransform(img);
+            }
+            lastDist = dist; lastMidX = midX; lastMidY = midY;
+
+        } else if (e.touches.length === 1 && scale > 1) {
+            e.preventDefault();
+            swipeBlocked = true;
+            const img = activeImg();
+            if (!img) return;
+            panX = panStartX + (e.touches[0].clientX - touchStartX);
+            panY = panStartY + (e.touches[0].clientY - touchStartY);
+            applyTransform(img);
+        }
+    };
+
     track.ontouchend = (e) => {
-        // Solo desliza si es un solo dedo y no hubo zoom
-        if (e.changedTouches.length === 1) {
-            let diff = touchStartX - e.changedTouches[0].clientX;
-            if (Math.abs(diff) > 80) { // Mayor sensibilidad
+        lastDist = 0;
+        if (swipeBlocked) { swipeBlocked = false; return; }
+        // Swipe solo cuando no hay zoom
+        if (scale <= 1 && e.changedTouches.length === 1) {
+            const diff = touchStartX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 60) {
+                resetZoom();
                 if (diff > 0 && currentIdx < imagenes.length - 1) currentIdx++;
                 else if (diff < 0 && currentIdx > 0) currentIdx--;
                 track.style.transform = `translateX(-${currentIdx * 100}%)`;
             }
         }
     };
+
+    // ── Doble tap para zoom 3x ────────────────────────────────────
+    let lastTap = 0;
+    track.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 300 && e.changedTouches.length === 1) {
+            e.preventDefault();
+            const img = activeImg();
+            if (!img) return;
+            if (scale > 1) {
+                resetZoom();
+            } else {
+                const rect = img.getBoundingClientRect();
+                const tx = e.changedTouches[0].clientX;
+                const ty = e.changedTouches[0].clientY;
+                scale = 3;
+                panX = -(tx - rect.left - rect.width / 2) * (scale - 1);
+                panY = -(ty - rect.top  - rect.height / 2) * (scale - 1);
+                applyTransform(img);
+            }
+        }
+        lastTap = now;
+    });
+
+    // ── Doble click (escritorio) ───────────────────────────────────
+    track.ondblclick = (e) => {
+        const img = activeImg();
+        if (!img) return;
+        if (scale > 1) {
+            resetZoom();
+        } else {
+            const rect = img.getBoundingClientRect();
+            scale = 3;
+            panX = -(e.clientX - rect.left - rect.width / 2) * (scale - 1);
+            panY = -(e.clientY - rect.top  - rect.height / 2) * (scale - 1);
+            applyTransform(img);
+        }
+    };
+
+    // Resetear zoom al cambiar de imagen
+    track.style.transitionProperty = 'transform';
+    const origTransition = track.style.transition;
+    window._lbResetZoom = resetZoom;
 }
 function closeModal(id) {
     document.getElementById(id).style.display = 'none';
-    document.body.style.overflow = 'auto'; // Devuelve el scroll a la web
-    
-    // Si cerramos el Lightbox, limpiamos el contenido
+    document.body.style.overflow = 'auto';
     if(id === 'modalLightbox') {
         document.getElementById('lightboxTrack').innerHTML = '';
     }
+}
+
+// Botones de zoom del lightbox (actúan sobre la imagen activa)
+function _lbActiveImg() {
+    const track = document.getElementById('lightboxTrack');
+    const slides = track.querySelectorAll('.lb-img');
+    // Deducimos el índice activo por el transform del track
+    const tx = new DOMMatrix(getComputedStyle(track).transform).m41;
+    const w  = track.parentElement.clientWidth || window.innerWidth;
+    const idx = Math.round(-tx / w);
+    return slides[idx] || slides[0];
+}
+
+function _lbGetScale(img) {
+    const m = new DOMMatrix(getComputedStyle(img).transform);
+    return m.a; // escala X
+}
+
+function lbZoom(dir) {
+    const img = _lbActiveImg();
+    if (!img) return;
+    let sc = _lbGetScale(img);
+    sc = dir > 0 ? Math.min(sc * 1.4, 8) : Math.max(sc / 1.4, 1);
+    if (sc <= 1) { img.style.transform = 'translate(0,0) scale(1)'; }
+    else {
+        const cur = new DOMMatrix(img.style.transform || 'none');
+        img.style.transform = `translate(${cur.m41}px,${cur.m42}px) scale(${sc})`;
+    }
+    document.getElementById('lbZoomLabel').textContent = Math.round(sc * 100) + '%';
+}
+
+function lbZoomReset() {
+    const img = _lbActiveImg();
+    if (!img) return;
+    img.style.transform = 'translate(0,0) scale(1)';
+    document.getElementById('lbZoomLabel').textContent = '100%';
+    if (window._lbResetZoom) window._lbResetZoom();
 }
 
 </script>
@@ -952,10 +1160,16 @@ function closeModal(id) {
     <div id="lightboxTrack" style="display: flex; width: 100%; height: 100%; transition: transform 0.3s ease;">
         <!-- Las imágenes se cargarán aquí dinámicamente -->
     </div>
+    <!-- Botones de zoom -->
+    <div class="lb-zoom-btns">
+        <button onclick="lbZoom(-1)" title="Alejar">−</button>
+        <span class="lb-zoom-level" id="lbZoomLabel">100%</span>
+        <button onclick="lbZoom(1)" title="Acercar">+</button>
+        <button onclick="lbZoomReset()" title="Restablecer" style="font-size:14px;">↺</button>
+    </div>
 </div>
 
 
 </body>
 
 </html>
-
